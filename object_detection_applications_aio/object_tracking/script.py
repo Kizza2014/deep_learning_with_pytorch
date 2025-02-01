@@ -39,7 +39,8 @@ def update_track_history(
         frame_idx,
         history_length
 ):
-    pass
+    current_tracks = set(track_ids)
+    
 
 def draw_tracks(frame, boxes, track_ids, track_history, config):
     pass
