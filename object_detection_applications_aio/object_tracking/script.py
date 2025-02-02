@@ -12,7 +12,7 @@ def load_config():
     return {
         'model_path': 'yolo11l.pt',
         'track_history_length': 120,
-        'batch_size': 64,
+        'batch_size': 32,
         'line_thickness': 4,
         'track_color': (230, 230, 230)
     }
@@ -52,7 +52,7 @@ def draw_tracks(frame, boxes, track_ids, track_history, config):
         return frame
     
     for track_id, box in zip(track_ids, boxes):
-        x, y, w, h = box.xywh.cpu()
+        x, y, w, h = box
         track = track_history[track_id]
         track.append((float(x), float(y)))
         if len(track) > config['track_history_length']:
