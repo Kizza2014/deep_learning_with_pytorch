@@ -40,10 +40,34 @@ def update_track_history(
         history_length
 ):
     current_tracks = set(track_ids)
-    
+    for track_id in list(track_history.keys()):
+        if track_id in current_tracks:
+            last_seen[track_id] = frame_count - (batch_size - frame_idx - 1)
+        elif frame_count - last_seen[track_id] > history_length:
+            del track_history[track_id]
+            del last_seen[track_id]
 
 def draw_tracks(frame, boxes, track_ids, track_history, config):
-    pass
+    if not track_ids:
+        return frame
+    
+    for track_id, box in zip(track_ids, boxes):
+        x, y, w, h = box.xywh.cpu()
+        track = track_history[track_id]
+        track.append((float(x), float(y)))
+        if len(track) > config['track_history_length']:
+            track.pop(0)
+
+        points = np.hstack(track).astype(np.int32).reshape((-1,1,2))
+        cv2.polylines(
+            frame,
+            [points],
+            isClosed=False,
+            color=config['track_color'],
+            thickness=config['line_thickness']
+        )
+
+    return frame
 
 def process_batch(model, batch_frames, track_history, last_seen, frame_count, config):
     results = model.track(batch_frames, persist=True, show=False, verbose=False)
@@ -52,17 +76,13 @@ def process_batch(model, batch_frames, track_history, last_seen, frame_count, co
     for frame_idx, result in enumerate(results):
         boxes = result.boxes.xywh.cpu()
         track_ids = result.boxes.id.int().cpu().tolist() if result.boxes.id is not None else []
-        update_track_history(track_history, last_seen, track_ids, len(batch_frames), frame_idx, config['track_history_length'])
+        update_track_history(track_history, last_seen, track_ids, frame_count, len(batch_frames), frame_idx, config['track_history_length'])
         annotated_frame = result.plot(font_size=4, line_width=2, conf=False)
-        annotated_frame = draw_tracks(
-            annotated_frame, boxes, track_ids, track_history, config
-        )
+        annotated_frame = draw_tracks(annotated_frame, boxes, track_ids, track_history, config)
         processed_frames.append(annotated_frame)
+    return processed_frames
 
 def main(video_path):
-    if video_path is None:
-        logger.error('Please specify a video path.')
-
     CONFIG  = load_config()
     model = YOLO(CONFIG.get('model_path', 'yolo11l.pt'))
 
@@ -116,8 +136,6 @@ def main(video_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--video-path', type=str, default=None)
+    parser.add_argument('video_path', type=str)
     args = parser.parse_args()
     main(args.video_path)
-
-
