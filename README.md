@@ -5,3 +5,5 @@
 22/1/2025: object_detection_aio - Image classification and bounding box regression
 
 1/2/2025: object_detection_applications_aio - object tracking with YOLO
+
+2/2/2025: object_detection_applications_aio - object counting with YOLO
